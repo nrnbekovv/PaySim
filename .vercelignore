@@ -1,0 +1,12 @@
+.git
+.tools
+.cache
+.local
+.env
+.env.*
+node_modules
+target
+test-ledger
+programs
+dist
+*.log

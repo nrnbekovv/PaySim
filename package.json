@@ -1,0 +1,32 @@
+{
+  "name": "paysim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --experimental-strip-types --test src/domain.test.ts",
+    "test:chain": "tsx scripts/test-chain.ts",
+    "setup:devnet": "tsx scripts/setup-devnet.ts"
+  },
+  "dependencies": {
+    "@solana/spl-token": "0.4.14",
+    "@solana/web3.js": "1.98.4",
+    "buffer": "6.0.3",
+    "lucide-react": "0.468.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.5",
+    "@types/react": "19.0.3",
+    "@types/react-dom": "19.0.2",
+    "@vitejs/plugin-react": "4.3.4",
+    "esbuild": "0.28.2",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "vite": "6.1.0"
+  }
+}

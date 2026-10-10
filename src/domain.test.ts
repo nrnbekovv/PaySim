@@ -1,0 +1,14 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { initialLedger, simulate, executeDemo, type Params } from './domain.ts';
+function expect(value:unknown){return {toBe:(expected:unknown)=>assert.equal(value,expected),toEqual:(expected:unknown)=>assert.deepEqual(value,expected),toThrow:(message:string)=>assert.throws(value as ()=>unknown,new RegExp(message))};}
+const params: Params = {kind:'coupon',recordDate:'2027-07-01',portionBps:2000,priceBps:10200,period:'2027-H2'};
+describe('PaySim entitlement and settlement rules',()=>{
+ it('calculates the reference coupon with integer precision',()=>{const s=simulate(initialLedger(),params);expect(s.valid).toBe(true);expect(s.rows.map(r=>r.payment)).toEqual(['5000000000','2500000000','1000000000']);expect(s.total).toBe('8500000000');});
+ it('redeems 34 bonds for $34,680',()=>{const s=simulate(initialLedger(),{...params,kind:'partial'});expect(s.valid).toBe(true);expect(s.total).toBe('34680000000');expect(s.retired).toBe('34');});
+ it('settles a complete lifecycle without losing money',()=>{let l=initialLedger();l=executeDemo(l,simulate(l,params),true);expect(simulate(l,params).valid).toBe(false);l=executeDemo(l,simulate(l,{...params,kind:'partial'}),true);l={...l,date:'2028-07-01'};l=executeDemo(l,simulate(l,{...params,kind:'maturity',recordDate:l.date}),true);expect(l.holders.map(h=>h.bonds)).toEqual(['0','0','0']);expect(l.holders.reduce((s,h)=>s+BigInt(h.cash),BigInt(l.treasury))).toBe(200000000000n);expect(l.history[0].total).toBe('136000000000');});
+ it('blocks early maturity, future snapshots, fractional bonds, and insufficient funds',()=>{expect(simulate(initialLedger(),{...params,kind:'maturity'}).valid).toBe(false);expect(simulate(initialLedger(),{...params,recordDate:'2028-07-01'}).valid).toBe(false);expect(simulate(initialLedger(),{...params,kind:'partial',portionBps:3333}).valid).toBe(false);expect(simulate({...initialLedger(),treasury:'1'},params).valid).toBe(false);});
+ it('blocks unauthorized, stale and repeated execution',()=>{const l=initialLedger(),s=simulate(l,params);expect(()=>executeDemo(l,s,false)).toThrow('authorization');const next=executeDemo(l,s,true);expect(()=>executeDemo(next,s,true)).toThrow('changed');expect(()=>executeDemo({...l,treasury:'0'},s,true)).toThrow('changed');});
+ it('recomputes payouts instead of trusting a modified preview',()=>{const l=initialLedger(),s=simulate(l,params);s.total='1';s.rows[0].payment='999';expect(executeDemo(l,s,true).holders[0].cash).toBe('5000000000');});
+ it('validates coupon period and full redemption reference',()=>{expect(simulate(initialLedger(),{...params,period:'2028-H1'}).valid).toBe(false);const l={...initialLedger(),date:'2028-07-01'};expect(simulate(l,{...params,recordDate:l.date,kind:'maturity'}).total).toBe('170000000000');});
+});
